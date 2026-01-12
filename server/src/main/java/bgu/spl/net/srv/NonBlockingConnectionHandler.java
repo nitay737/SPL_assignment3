@@ -118,6 +118,8 @@ public class NonBlockingConnectionHandler<T> implements ConnectionHandler<T> {
 
     @Override
     public void send(T msg) {
-        //IMPLEMENT IF NEEDED
+        ByteBuffer enc = ByteBuffer.wrap(encdec.encode(msg));
+        writeQueue.add(enc);
+        continueWrite();
     }
 }
