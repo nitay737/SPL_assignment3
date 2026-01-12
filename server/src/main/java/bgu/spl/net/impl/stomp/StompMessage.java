@@ -10,7 +10,11 @@ public class StompMessage {
         SEND,
         SUBSCRIBE,
         UNSUBSCRIBE,
-        DISCONNECT
+        DISCONNECT,
+        ERROR,
+        CONNECTED,
+        MESSAGE,
+        RECEIPT
     }
 
     private stompCommand command;
@@ -25,6 +29,13 @@ public class StompMessage {
     public StompMessage(String message)
     {
         parse(message);
+    }
+
+    public StompMessage(stompCommand command,HashMap<String,String> header, String body)
+    {
+        this.command = command;
+        this.body = body;
+        this.header = header;
     }
 
     private void parse(String message)
@@ -55,7 +66,7 @@ public class StompMessage {
                 headers = DisconnectHeaders;
                 break;
             default:
-                throw new IllegalArgumentException();
+                throw new IllegalArgumentException("not a legal command");
         }
         int i = 1;
         while( i<subMessage.length && subMessage[i] != "")
@@ -67,7 +78,7 @@ public class StompMessage {
                 headers.remove(subHeader[0]);
             }
             else
-                throw new IllegalArgumentException();
+                throw new IllegalArgumentException("not a legal header");
             i++;
         }
 
@@ -91,6 +102,25 @@ public class StompMessage {
     public String getBody()
     {
         return body;
+    }
+
+    public void addHeader(String h, String value)
+    {
+        if(!header.containsKey(h) || value == null)
+            return;
+        header.put(h, value);
+    }
+
+    public String getMessage()
+    {
+        String message = "";
+        message += command.toString()+"\n";
+        for (String h : header.keySet()) {
+            message += h+":"+header.get(h)+"\n";
+        }
+        message+= "\n" ;
+        message+= body + "\n";
+        return message;
     }
 
 }

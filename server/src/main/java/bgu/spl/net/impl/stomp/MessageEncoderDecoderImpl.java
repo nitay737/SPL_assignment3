@@ -5,16 +5,16 @@ import java.util.Arrays;
 
 import bgu.spl.net.api.MessageEncoderDecoder;
 
-public class MessageEncoderDecoderImpl implements MessageEncoderDecoder<String> {
+public class MessageEncoderDecoderImpl implements MessageEncoderDecoder<StompMessage> {
 
     private byte[] bytes = new byte[1 << 10]; //start with 1k
     private int len = 0;
 
-    public String decodeNextByte(byte nextByte)
+    public StompMessage decodeNextByte(byte nextByte)
     {
         //notice that the top 128 ascii characters have the same representation as their utf-8 counterparts
         //this allow us to do the following comparison
-        if (nextByte == '^@') {
+        if (nextByte == '\u0000') {
             return popString();
         }
 
@@ -23,8 +23,8 @@ public class MessageEncoderDecoderImpl implements MessageEncoderDecoder<String> 
     }
 
     @Override
-    public byte[] encode(String message) {
-        return (message + "\n").getBytes(); //uses utf8 by default
+    public byte[] encode(StompMessage message) {
+        return (message.getMessage() + "\n").getBytes(); //uses utf8 by default
     }
 
     private void pushByte(byte nextByte) {
@@ -35,11 +35,11 @@ public class MessageEncoderDecoderImpl implements MessageEncoderDecoder<String> 
         bytes[len++] = nextByte;
     }
 
-    private String popString() {
+    private StompMessage popString() {
         //notice that we explicitly requesting that the string will be decoded from UTF-8
         //this is not actually required as it is the default encoding in java.
         String result = new String(bytes, 0, len, StandardCharsets.UTF_8);
         len = 0;
-        return result;
+        return new StompMessage(result);
     }
 }
