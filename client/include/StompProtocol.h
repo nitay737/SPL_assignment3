@@ -1,7 +1,9 @@
 #pragma once
 
-#include "..\client\include\ConnectionHandler.h"
+#include "../client/include/ConnectionHandler.h"
 #include <atomic>
+#include <unordered_map>
+#include <mutex>
 
 // TODO: implement the STOMP protocol
 class StompProtocol
@@ -20,5 +22,9 @@ private:
 
     ConnectionHandler* connectionHandler;
     std::atomic<bool> shouldClose;
-    int id;
+    std::atomic<int> idC;
+    std::atomic<int> idR;
+    std::unordered_map<std::string, int> channels;
+    std::mutex mutex;
+    
 };
