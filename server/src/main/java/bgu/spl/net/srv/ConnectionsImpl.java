@@ -1,6 +1,7 @@
 package bgu.spl.net.srv;
 
 import java.io.IOException;
+import java.nio.channels.SocketChannel;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -10,40 +11,53 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Flow.Subscriber;
 
+import bgu.spl.net.api.MessageEncoderDecoder;
+import bgu.spl.net.api.MessagingProtocol;
 import bgu.spl.net.api.StompMessagingProtocol;
+import bgu.spl.net.impl.data.User;
 
 public class ConnectionsImpl<T> implements Connections<T> {
-    Integer id;
-    private ConcurrentHashMap<Integer,ConnectionHandler<T>> handlersId;
-    private ConcurrentHashMap<Integer, Set<String>> handlersChannels;
 
-    public ConnectionsImpl(List<ConnectionHandler<T>> handlers)
+    // (subscriptionId,IdConnect)
+    private ConcurrentHashMap<Integer ,Integer> handlersId;
+    // (subscriptionName,{subscriptionId,...} )
+    private ConcurrentHashMap<String ,List<Integer>> channels;
+    // (IdConnect, true/false)
+    private ConcurrentHashMap<Integer ,Boolean> handlersConnected;
+    // (IdConnect, handler)
+    private ConcurrentHashMap<Integer, ConnectionHandler<T>> idConnected;
+
+    private boolean blocking;
+    public ConnectionsImpl(List<Integer> users, boolean blocking)
     {
-        id = 0;
-        handlersChannels = new ConcurrentHashMap<>();
+        this.blocking = blocking;
+        channels = new ConcurrentHashMap<>();
         handlersId = new ConcurrentHashMap<>();
-        for (ConnectionHandler<T> connectionHandler : handlers) {
-            handlersId.put(id, connectionHandler);
-            handlersChannels.put(id, new HashSet<String>());
-            id++;
+        handlersConnected = new ConcurrentHashMap<>();
+        for (Integer connectionId : users) {
+            handlersConnected.put(connectionId, true);
+            idConnected.put(connectionId, createConnectionHandler());
         }
     }
 
     @Override
     public boolean send(int connectionId, T msg)
     {
-        if(!handlersId.contains(connectionId))
-            return false;
-        handlersId.get(connectionId).send(msg);;
-        return true;
+        if(handlersId.contains(connectionId) && handlersConnected.get(handlersId.get(connectionId)))
+        {
+            idConnected.get(handlersId.get(connectionId)).send(msg);
+            return true;
+        }
+        return false;
     }
 
     @Override
     public void send(String channel, T msg)
     {
-        for (Integer handlerId : handlersChannels.keySet()) {
-            if(handlersChannels.get(handlerId).contains(channel))
-                handlersId.get(handlerId).send(msg);
+        if(!channels.contains(channel))
+            return;
+        for (Integer handlerId : channels.get(channel)) {
+            send(handlerId, msg);
         }
     }
 
@@ -53,27 +67,51 @@ public class ConnectionsImpl<T> implements Connections<T> {
         if(handlersId.contains(connectionId))
         {
             try{
-                handlersId.get(connectionId).close();
-                handlersId.remove(connectionId);
-                handlersChannels.remove(connectionId);
+                idConnected.get(handlersId.get(connectionId)).close();
+                handlersConnected.put(handlersId.get(connectionId),false);
             }catch(IOException e){
                 e.printStackTrace();
             }
         }
     }
 
-    public void connect(ConnectionHandler<T> handler)
+    public void connect(Integer connectionsId)
     {
+
+        ConnectionHandler<T> handler = createConnectionHandler();
         if(!handlersId.contains(handler))
             return;
-        handlersId.put(id, handler);
-        handlersChannels.put(id, new HashSet<String>());
-        id++;
+        handlersConnected.put(handler,true);
     }
 
-    public void subscribe(String channel,int connectionId)
+    public void subscribe(String channel,int connectionId, int subId)
     {
-        if(handlersChannels.contains(connectionId))
-            handlersChannels.get(connectionId).add(channel);
+        if(channels.contains(channel))
+        {
+            channels.get(channel).add(subId);
+            handlersId.put(subId, connectionId);
+        }
+
+    }
+
+    public void unsubscribe(Integer id)
+    {
+        for (String channel : channels.keySet()) {
+            if(channels.get(channel).contains(id))
+                channels.get(channel).remove(id);
+        }
+    }
+
+    public ConnectionHandler<T> getHandler(Integer id)
+    {
+        return idConnected.get(id);
+    }
+
+    private ConnectionHandler<T> createConnectionHandler()
+    {
+        if(blocking)
+        {
+            return new BlockingConnectionHandler<>(null, null, null)
+        }
     }
 }
