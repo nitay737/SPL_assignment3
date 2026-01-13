@@ -1,8 +1,13 @@
 #pragma once
 
-#include "../client/include/ConnectionHandler.h"
-#include <atomic>
+#include "../include/ConnectionHandler.h"
+#include "../include/event.h"
+
+#include <string>
+#include <vector>
+#include <map>
 #include <unordered_map>
+#include <atomic>
 #include <mutex>
 
 // TODO: implement the STOMP protocol
@@ -21,10 +26,15 @@ private:
     void handleLogout();
 
     ConnectionHandler* connectionHandler;
+    std::string currentUser;
     std::atomic<bool> shouldClose;
     std::atomic<int> idC;
     std::atomic<int> idR;
+    // (game_name, id)
     std::unordered_map<std::string, int> channels;
     std::mutex mutex;
-    
+    // (user, (game_name, game_event))
+    std::unordered_map<std::string, std::unordered_map<std::string, std::vector<Event>>> userEvents;
+
+
 };

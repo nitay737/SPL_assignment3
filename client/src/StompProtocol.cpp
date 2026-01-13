@@ -1,9 +1,11 @@
 #pragma once
 
-#include "..\client\include\ConnectionHandler.h"
+#include "../include/ConnectionHandler.h"
+#include "../include/event.h"
 #include <atomic>
 #include <unordered_map>
 #include <mutex>
+#include <fstream>
 
 // TODO: implement the STOMP protocol
 class StompProtocol
@@ -37,10 +39,11 @@ public:
 
 private:
     bool handleLogin(const std::vector<std::string>& params){
+        currentUser = params[1].substr(1,params[1].length()-2);
         std::string connectFrame = "CONNECT\n" +
             "accept-version:1.2\n" +
             "host:stomp.cs.bgu.ac.il\n" +
-            "login:" + params[1].substr(1,params[1].length()-2) + "\n" +
+            "login:" + currentUser + "\n" +
             "passcode:" + params[2].substr(1,params[2].length()-2) + "\n" +
             "\n";
         return connectionHandler->sendFrameAscii(connectFrame, '\0');
@@ -84,11 +87,82 @@ private:
     }
 
     bool handleReport(const std::vector<std::string>& params){
-        
+        names_and_events nne = parseEventsFile(params[1].substr(1,params[1].length()-2));
+        std::string game_name = "<" + nne.team_a_name + ">_<" + nne.team_b_name + ">";
+        for (Event evn : nne.events) {
+            userEvents[currentUser][game_name].push_back(evn);
+            std::string game_updates;
+            std::string team_a_updates;
+            std::string team_b_updates;
+            for (const auto& [key, value] : evn.get_game_updates())
+                game_updates += key + ": " + value + "\n";
+            for (const auto& [key, value] : evn.get_team_a_updates())
+                team_a_updates += key + ": " + value + "\n";
+            for (const auto& [key, value] : evn.get_team_b_updates())
+                team_b_updates += key + ": " + value + "\n";
+            std::string connectFrame = std::string("SEND\n") +
+            "destination:" + game_name + "\n\n" +
+            "user:" + currentUser + "\n" +
+            "team a:" + nne.team_a_name + "\n" +
+            "team b:" + nne.team_b_name + "\n" +
+            "event name:" + evn.get_name() + "\n" +
+            "time:" + std::to_string(evn.get_time()) + "\n" +
+            "general game updates:\n" + game_updates +
+            "team a updates:\n" + team_a_updates +
+            "team b updates:\n" + team_b_updates +
+            "description:\n" +
+            evn.get_discription() + "\n" +
+            "\n";
+            connectionHandler->sendFrameAscii(connectFrame, '\0');
+        }
+        return true;
     }
 
     bool handleSummary(const std::vector<std::string>& params){
-    
+        std::string game_name = params[1].substr(1,params[1].length()-2);
+        std::string user = params[2].substr(1,params[2].length()-2);
+        std::string file_path = params[3].substr(1,params[3].length()-2);
+
+        size_t pos = game_name.find('_');
+        std::string team_a_name = game_name.substr(0, pos);
+        std::string team_b_name = game_name.substr(pos + 1);
+
+        std::ofstream file(file_path);
+        if (!file.is_open()) {
+            std::cerr << "Failed to open file at " << file_path << std::endl;
+            return false;
+        }
+
+        std::vector<Event> events = userEvents[user][game_name];
+        std::map<std::string,std::string> game_updates;
+        std::map<std::string,std::string> team_a_updates;
+        std::map<std::string,std::string> team_b_updates;
+        for (const Event& evn : events) {
+            game_updates.insert(evn.get_game_updates().begin(), evn.get_game_updates().end());
+            team_a_updates.insert(evn.get_team_a_updates().begin(), evn.get_team_a_updates().end());
+            team_b_updates.insert(evn.get_team_b_updates().begin(), evn.get_team_b_updates().end());
+        }
+        std::sort(events.begin(), events.end(), compareEventsByTime);
+
+        file << game_name << "\n Game stats:\n General stats:" << std::endl;
+        for (const auto& [key, value] : game_updates) {
+                file << key << ": " << value << std::endl;
+            }
+        file << team_a_name << " stats:" << std::endl;
+        for (const auto& [key, value] : team_a_updates) {
+                file << key << ": " << value << std::endl;
+            }
+        file << team_b_name << " stats:" << std::endl;
+        for (const auto& [key, value] : team_b_updates) {
+                file << key << ": " << value << std::endl;
+            }
+        file << "Game event reports:" << std::endl;
+        for (const Event& evn : events) {
+            file << evn.get_time() << " - " << evn.get_name() << std::endl;
+            file << "\n" << evn.get_discription() << "\n" << std::endl;
+            }
+        file.close();
+        return true;
     }
 
     bool handleLogout(){
@@ -99,5 +173,9 @@ private:
         channels.clear();
         idC.store(0);
         return connectionHandler->sendFrameAscii(connectFrame, '\0');
+    }
+
+    bool compareEventsByTime(const Event& a, const Event& b) {
+        return a.get_time() < b.get_time();
     }
 };
