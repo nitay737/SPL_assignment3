@@ -38,28 +38,26 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
                 else
                 {
                     response = new StompMessage("CONNECTED\n" +
-                                                "version :1.2\n \n" +
+                                                "version:1.2\n \n" +
                                                 '\u0000');
                     connections.send(ownerId, response);
                 }
                 break;
             case SEND:
                 try{
-                    connections.send(stomp.getHeader("destination"), stomp);
-                }catch(IllegalArgumentException e)
+                    if(!connections.isSubed(stomp.getHeader("destination"), ownerId))
+                        sendError(stomp, "you are not subscribed to this channel");
+                    }catch(IllegalArgumentException e)
                 {
-                    sendError(stomp, "you are not subscribed to this channel");
+                    sendError(stomp, "this channel does not exists");
                 }
+                connections.send(stomp.getHeader("destination"), stomp);
                 break;
             case SUBSCRIBE:
-                try{
                     connections.subscribe(stomp.getHeader("destination"), Integer.parseInt(stomp.getHeader("id")),ownerId);
-                }catch(IllegalArgumentException e)
-                {
-                    sendError(stomp, "cant subscribe to this channel");
-                }
+                break;
             case UNSUBSCRIBE:
-                connections.unsubscribe(Integer.parseInt(stomp.getHeader("id")));
+                connections.unsubscribe(ownerId, Integer.parseInt(stomp.getHeader("id")));
                 break;
             case DISCONNECT:
                 connections.disconnect(ownerId);
@@ -80,7 +78,7 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
         {
             StompMessage response = new StompMessage(StompMessage.stompCommand.ERROR, new HashMap<>(), "the message:\n"+ "-----\n"+
                     message+"-----\n"+e.getMessage());
-            response.addHeader("receipt - id", "");
+            response.addHeader("receipt-id", "");
             response.addHeader("message", e.getMessage());
             connections.send(ownerId,response);
             connections.disconnect(ownerId);
@@ -94,7 +92,7 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
     {
         StompMessage error = new StompMessage(StompMessage.stompCommand.ERROR, new HashMap<>(), "the message:\n"+ "-----\n"+
         stomp.getMessage()+"-----\n");
-        error.addHeader("receipt - id", stomp.getHeader("receipt"));
+        error.addHeader("receipt-id", stomp.getHeader("receipt"));
         error.addHeader("message", "you are not subscribed to this channel");
         connections.send(ownerId, error);
         connections.disconnect(ownerId);
@@ -104,7 +102,7 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
     public void sendReceipt(String receiptId)
     {
         StompMessage send = new StompMessage("RECEIPT\n" +
-                        "receipt - id :"+receiptId+"\n" +
+                        "receipt-id :"+receiptId+"\n" +
                         '\u0000');
         connections.send(ownerId, send);
     }

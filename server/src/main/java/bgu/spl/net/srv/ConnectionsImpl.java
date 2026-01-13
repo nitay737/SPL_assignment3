@@ -10,8 +10,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import bgu.spl.net.api.MessageEncoderDecoder;
 import bgu.spl.net.api.MessagingProtocol;
@@ -19,28 +21,45 @@ import bgu.spl.net.api.StompMessagingProtocol;
 import bgu.spl.net.impl.stomp.*;
 import bgu.spl.net.impl.data.User;
 
+class Subscription {
+    int connectionId;
+    int subscriptionId;
+
+    public Subscription(int connectionId, int subscriptionId) {
+        this.connectionId = connectionId;
+        this.subscriptionId = subscriptionId;
+    }
+    
+    // IMPORTANT: Implement equals and hashCode for Set operations to work!
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Subscription that = (Subscription) o;
+        return connectionId == that.connectionId && subscriptionId == that.subscriptionId;
+    }
+}
+
 public class ConnectionsImpl implements Connections<StompMessage> {
 
-    // (subscriptionId ,IdConnect)
-    private ConcurrentHashMap<Integer ,Integer> subsId;
-    // (subscriptionName ,{subscriptionId,...} )
-    private ConcurrentHashMap<String ,Set<Integer>> channels;
+    // (subscriptionName ,{connectionId,...} )
+    private ConcurrentHashMap<String, ConcurrentLinkedQueue<Subscription>> channels = new ConcurrentHashMap<>();
     // (IdConnect, handler)
     private ConcurrentHashMap<Integer, ConnectionHandler<StompMessage>> handlersId;
 
-    private Integer messageId = 0;
+    private AtomicInteger messageId;
     
     public ConnectionsImpl(ConcurrentHashMap<Integer, ConnectionHandler<StompMessage>> users)
     {
+        messageId = new AtomicInteger(0);
         channels = new ConcurrentHashMap<>();
-        subsId = new ConcurrentHashMap<>();
         handlersId = users;
     }
 
     @Override
     public boolean send(int connectionId, StompMessage msg)
     {
-        if(handlersId.contains(connectionId))
+        if(handlersId.containsKey(connectionId))
         {
             handlersId.get(connectionId).send(msg);
             return true;
@@ -51,33 +70,32 @@ public class ConnectionsImpl implements Connections<StompMessage> {
     @Override
     public void send(String channel, StompMessage msg)
     {
-        if(!channels.contains(channel))
+
+        if(!channels.containsKey(channel))
         {
             throw new IllegalArgumentException();
         }
-        for (Integer subId : channels.get(channel)) {
+        for (Subscription sub : channels.get(channel)) {
             StompMessage response = new StompMessage(StompMessage.stompCommand.MESSAGE, new HashMap<>(), msg.getBody());
-            response.addHeader("subscription", subId.toString());
-            response.addHeader("message - id", messageId.toString());
-            messageId++;
+            response.addHeader("subscription", String.valueOf(sub.subscriptionId));
+            response.addHeader("message-id", String.valueOf(messageId.getAndIncrement()));
             response.addHeader("destination", channel);
-            send(subsId.get(subId), response);
+            send(sub.connectionId, response);
         }
     }
 
     @Override
     public void disconnect(int connectionId)
     {
-        if(handlersId.contains(connectionId))
+        if(handlersId.containsKey(connectionId))
         {
             try{
                 handlersId.get(connectionId).close();
-                for (Integer subId : subsId.keySet()) {
-                    if(subsId.get(subId) == connectionId)
-                        subsId.remove(subId);
-                    for (String channel : channels.keySet()) {
-                        if(channels.get(channel).contains(subId))
-                            channels.get(channel).remove(subId);
+                for (String channel : channels.keySet()) {
+                    for(Subscription sub : channels.get(channel))
+                    {
+                        if(sub.connectionId == connectionId)
+                            channels.get(channel).remove(sub);
                     }
                 }
             }catch(IOException e){
@@ -93,28 +111,41 @@ public class ConnectionsImpl implements Connections<StompMessage> {
 
     public void subscribe(String channel,int connectionId, int subId)
     {
-        if(!channels.contains(channel))
+        if(!channels.containsKey(channel))
         {
-            throw new IllegalArgumentException();
+            channels.put(channel, new ConcurrentLinkedQueue<>());
         }
-        channels.get(channel).add(subId);
-        subsId.put(subId, connectionId);
+        channels.get(channel).add(new Subscription(connectionId, subId));
 
     }
 
-    public void unsubscribe(Integer subId)
+    public void unsubscribe(int connectionId, int subId)
     {
-        if(!subsId.contains(subId))
-            return;
+        Subscription remove = new Subscription(connectionId, subId);
         for (String channel : channels.keySet()) {
-            if(channels.get(channel).contains(subId))
-                channels.get(channel).remove(subId);
+            if(channels.get(channel).contains(remove))
+            {
+                channels.get(channel).remove(remove);
+            }
         }
-        subsId.remove(subId);
     }
 
     public ConnectionHandler<StompMessage> getHandler(Integer connectionId)
     {
         return handlersId.get(connectionId);
+    }
+
+    public boolean isSubed(String channel, int connectionId)
+    {
+        if(!channels.containsKey(channel))
+        {
+            throw new IllegalArgumentException();
+        }
+        boolean isSub = false;
+        for (Subscription sub : channels.get(channel)) {
+            if(sub.connectionId == connectionId)
+                isSub = true;
+        }
+        return isSub;
     }
 }

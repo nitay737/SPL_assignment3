@@ -24,7 +24,7 @@ public class MessageEncoderDecoderImpl implements MessageEncoderDecoder<StompMes
 
     @Override
     public byte[] encode(StompMessage message) {
-        return (message.getMessage() + "\n").getBytes(); //uses utf8 by default
+        return (message.getMessage() + '\u0000').getBytes(); //uses utf8 by default
     }
 
     private void pushByte(byte nextByte) {

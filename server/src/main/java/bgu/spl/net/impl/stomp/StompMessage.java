@@ -20,7 +20,7 @@ public class StompMessage {
     private stompCommand command;
     private HashMap<String,String> header;
     private String body = "";
-    private final LinkedList<String> ConnectHeaders = new LinkedList<>(List.of("accept - version","host","login","passcode"));
+    private final LinkedList<String> ConnectHeaders = new LinkedList<>(List.of("accept-version","host","login","passcode"));
     private final LinkedList<String> SendHeaders = new LinkedList<>(List.of("destination"));
     private final LinkedList<String> SubscribeHeaders = new LinkedList<>(List.of("destination","id"));
     private final LinkedList<String> UnsubscribeHeaders = new LinkedList<>(List.of("id"));
@@ -28,6 +28,7 @@ public class StompMessage {
 
     public StompMessage(String message)
     {
+        header = new HashMap<>();
         parse(message);
     }
 
@@ -69,18 +70,26 @@ public class StompMessage {
                 throw new IllegalArgumentException("not a legal command");
         }
         int i = 1;
-        while( i<subMessage.length && subMessage[i] != "")
-        {
-            String[] subHeader = subMessage[i].split(":");
-            if(headers.contains(subHeader[0]))
-            {
-                header.put(subHeader[0], subHeader[1]);
-                headers.remove(subHeader[0]);
+        while (i < subMessage.length && !subMessage[i].isEmpty()) {
+            String[] subHeader = subMessage[i].split(":", 2);
+            
+            if (subHeader.length < 2) {
+                throw new IllegalArgumentException("Header missing value");
             }
-            else
-                throw new IllegalArgumentException("not a legal header");
+
+            String key = subHeader[0].trim();
+            String value = subHeader[1].trim();
+
+            if (headers.contains(key) || key.equals("receipt")) {
+                header.put(key, value);
+                headers.remove(key);
+            } else {
+                throw new IllegalArgumentException("not a legal header: " + key);
+            }
             i++;
         }
+        if(!headers.isEmpty())
+            throw new IllegalArgumentException("not a legal header");
 
         while (i<subMessage.length && subMessage[i] != "^ @") {
             body += subMessage[i] + "\n";
