@@ -25,7 +25,11 @@ private:
     bool handleReport(const std::vector<std::string>& params);
     bool handleSummary(const std::vector<std::string>& params);
     bool handleLogout();
-    bool compareEventsByTime(const Event& a, const Event& b);
+    bool handleConnected();
+    bool handleMessage(const std::string& msg);
+    bool handleReceipt(const std::string& msg);
+    bool handleError(const std::string& msg);
+    static bool compareEventsByTime(const Event& a, const Event& b);
     std::vector<std::string> split(const std::string& str, char delimiter);
 
     ConnectionHandler* connectionHandler;
@@ -38,5 +42,13 @@ private:
     std::mutex mutex;
     // (user, (game_name, game_event))
     std::unordered_map<std::string, std::unordered_map<std::string, std::vector<Event>>> userEvents;
+
+    struct receiptInf {
+        std::string operation;
+        std::string game_name;
+    };
+
+    // (receiptId, receiptInf)
+    std::unordered_map<int, receiptInf> receipts;
 
 };

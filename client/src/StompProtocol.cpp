@@ -2,17 +2,19 @@
 
 #include "../include/ConnectionHandler.h"
 #include "../include/event.h"
+#include "StompProtocol.h"
 #include <atomic>
 #include <unordered_map>
 #include <mutex>
-#include <fstream>
-#include "StompProtocol.h"
-
 
 StompProtocol::StompProtocol (ConnectionHandler* connectionHandler):
     connectionHandler(connectionHandler), shouldClose(false), idC(0), idR(0) {}
 
 bool StompProtocol::handleInput(const std::string& input){
+    if (input.empty()){
+        std::cerr<< "empty input" <<std::endl;
+        return false;
+    } 
     std::vector<std::string> params = split(input,' ');
     std::string command = params[0];
     if (command == "login") {
@@ -28,7 +30,7 @@ bool StompProtocol::handleInput(const std::string& input){
     } else if (command == "logout") {
         return handleLogout();
     } else {
-        std::cerr << "frame is not legal" << std::endl;
+        std::cerr << "invalid input" << std::endl;
         return false;
     }
 }
@@ -41,7 +43,7 @@ bool StompProtocol::handleFrames(const std::string &msg){
         i++;
     }
     if (command == "CONNECTED") {
-        return handleConnected(msg);
+        return handleConnected();
     } else if (command == "MESSAGE") {
         return handleMessage(msg);
     } else if (command == "RECEIPT") {
@@ -55,19 +57,19 @@ bool StompProtocol::handleFrames(const std::string &msg){
 }
 
 bool StompProtocol::handleLogin(const std::vector<std::string>& params){
-    currentUser = params[1];
+    currentUser = params[2];
     std::string connectFrame = "CONNECT\n" +
         "accept-version:1.2\n" +
         "host:stomp.cs.bgu.ac.il\n" +
         "login:" + currentUser + "\n" +
-        "passcode:" + params[2].substr(1,params[2].length()-2) + "\n" +
+        "passcode:" + params[3] + "\n" +
         "\n";
     return connectionHandler->sendFrameAscii(connectFrame, '\0');
 }
 
 bool StompProtocol::handleJoin(const std::vector<std::string>& params){
     std::string channel (params[1]);
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock (mutex);
     if (channels.find(channel) != channels.end()) {
         std::cerr << "channel already joined" << std::endl;
         return false;
@@ -75,10 +77,11 @@ bool StompProtocol::handleJoin(const std::vector<std::string>& params){
     int curIdC = idC.fetch_add(1);
     int curIdR = idR.fetch_add(1);
     std::string connectFrame = "SUBSCRIBE\n" + 
-        "destination: " + channel + "\n" +
-        "id: " + std::to_string(curIdC) + "\n" +
-        "receipt: " + std::to_string(curIdR) + "\n" +
+        "destination:" + channel + "\n" +
+        "id:" + std::to_string(curIdC) + "\n" +
+        "receipt:" + std::to_string(curIdR) + "\n" +
         "\n";
+    receipts[curIdR] = {"join",channel};
     channels.insert({channel, curIdC});
     return connectionHandler->sendFrameAscii(connectFrame, '\0');
 }
@@ -97,6 +100,7 @@ bool StompProtocol::handleExit(const std::vector<std::string>& params){
         "id:" + std::to_string(channelId) + "\n" +
         "receipt:" + std::to_string(curIdR) + "\n" +
         "\n";
+    receipts[curIdR] = {"exit",channel};
     channels.erase(channel);
     return connectionHandler->sendFrameAscii(connectFrame, '\0');
 }
@@ -105,6 +109,7 @@ bool StompProtocol::handleReport(const std::vector<std::string>& params){
     names_and_events nne = parseEventsFile(params[1]);
     std::string game_name = nne.team_a_name + "_" + nne.team_b_name;
     for (Event evn : nne.events) {
+        std::lock_guard<std::mutex> lock (mutex);
         userEvents[currentUser][game_name].push_back(evn);
         std::string game_updates;
         std::string team_a_updates;
@@ -117,11 +122,11 @@ bool StompProtocol::handleReport(const std::vector<std::string>& params){
             team_b_updates += key + ": " + value + "\n";
         std::string connectFrame = std::string("SEND\n") +
         "destination:" + game_name + "\n\n" +
-        "user:" + currentUser + "\n" +
-        "team a:" + nne.team_a_name + "\n" +
-        "team b:" + nne.team_b_name + "\n" +
-        "event name:" + evn.get_name() + "\n" +
-        "time:" + std::to_string(evn.get_time()) + "\n" +
+        "user: " + currentUser + "\n" +
+        "team a: " + nne.team_a_name + "\n" +
+        "team b: " + nne.team_b_name + "\n" +
+        "event name: " + evn.get_name() + "\n" +
+        "time: " + std::to_string(evn.get_time()) + "\n" +
         "general game updates:\n" + game_updates +
         "team a updates:\n" + team_a_updates +
         "team b updates:\n" + team_b_updates +
@@ -148,6 +153,7 @@ bool  StompProtocol::handleSummary(const std::vector<std::string>& params){
         return false;
     }
 
+    std::lock_guard<std::mutex> lock (mutex);
     std::vector<Event> events = userEvents[user][game_name];
     std::map<std::string,std::string> game_updates;
     std::map<std::string,std::string> team_a_updates;
@@ -185,9 +191,131 @@ bool StompProtocol::handleLogout(){
     std::string connectFrame = std::string("DISCONNECT\n") +
         "receipt:" + std::to_string(curIdR) + "\n" +
         "\n";
+    std::lock_guard<std::mutex> lock (mutex);
+    receipts[curIdR] = {"logout",""};
     channels.clear();
     idC.store(0);
     return connectionHandler->sendFrameAscii(connectFrame, '\0');
+}
+
+bool StompProtocol::handleConnected(){
+    std::cout << "connected successfully" << std::endl;
+    return true;
+}
+
+bool StompProtocol::handleMessage(const std::string& msg) {
+    std::vector<std::string> lines = split(msg, '\n'); 
+
+    std::string game_name;
+    std::string user;
+    std::string team_a_name, team_b_name, event_name, description;
+    int time;
+    std::map<std::string, std::string> general_updates, team_a_updates, team_b_updates;
+    bool isBody = false;
+    std::string current_section = "header";
+
+    for (std::string line : lines) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        if (!isBody) {
+            if (line.empty()) {
+                isBody = true;
+                continue;
+            }
+            if (line.find("destination:") == 0) {
+                game_name = line.substr(12);
+            }
+        } 
+        else {
+            if (line.empty()) continue;
+            if (line == "general game updates:") {
+                current_section = "general";
+                continue;
+            } else if (line == "team a updates:") {
+                current_section = "team_a";
+                continue;
+            } else if (line == "team b updates:") {
+                current_section = "team_b";
+                continue;
+            } else if (line == "description:") {
+                current_section = "description";
+                continue;
+            }
+            if (current_section == "description") {
+                description += line + "\n";
+            } else {
+                size_t colonPos = line.find(':');
+                if (colonPos != std::string::npos) {
+                    std::string key = line.substr(0, colonPos);
+                    std::string value = line.substr(colonPos + 1);
+                    if (!value.empty() && value[0] == ' ') value = value.substr(1);
+                    if (current_section == "header") {
+                        if (key == "user") user = value;
+                        else if (key == "team a") team_a_name = value;
+                        else if (key == "team b") team_b_name = value;
+                        else if (key == "event name") event_name = value;
+                        else if (key == "time") time = std::stoi(value);
+                    } 
+                    else if (current_section == "general") general_updates[key] = value;
+                    else if (current_section == "team_a") team_a_updates[key] = value;
+                    else if (current_section == "team_b") team_b_updates[key] = value;
+                }
+            }
+        }
+    }
+    if (user.empty() || game_name.empty()) return false;
+    Event event(event_name, team_a_name, team_b_name, time, 
+                general_updates, team_a_updates, team_b_updates, description);
+    std::lock_guard<std::mutex> lock (mutex);
+    userEvents[user][game_name].push_back(event);
+    return true;
+}
+
+bool StompProtocol::handleReceipt(const std::string &msg){
+    std::vector<std::string> lines = split(msg, '\n'); 
+    if (lines.size() < 2) return false;
+    size_t colonPos = lines[1].find(':');
+    if (colonPos != std::string::npos){
+        int receiptId = std::stoi(lines[1].substr(colonPos + 1));
+        std::lock_guard<std::mutex> lock (mutex);
+        auto it = receipts.find(receiptId);
+        if (it != receipts.end()) {
+            std::string operation = it->second.operation;
+            std::string gameName = it->second.game_name;
+            if (operation == "join") {
+                std::cout << "Joined channel " << gameName << std::endl;
+                receipts.erase(it);
+                return true;
+            } 
+            else if (operation == "exit") {
+                std::cout << "Exited channel " << gameName << std::endl;
+                receipts.erase(it);
+                return true;
+            } 
+            else if (operation == "logout") {
+                connectionHandler->close();
+                shouldClose.store(true);
+                receipts.erase(it);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool StompProtocol::handleError(const std::string &msg) {
+    std::vector<std::string> lines = split(msg, '\n');
+    bool isBody = false;
+    for (const std::string& line : lines) {
+        if (isBody) {
+            std::cerr << line << std::endl;
+        }
+        else if (line.empty()) {
+            isBody = true;
+        }
+    }
+    connectionHandler->close();
+    shouldClose.store(true);
+    return true;
 }
 
 bool StompProtocol::compareEventsByTime(const Event& a, const Event& b) {
