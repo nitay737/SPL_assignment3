@@ -14,16 +14,19 @@
 class StompProtocol
 {
 public:
-    StompProtocol (ConnectionHandler* connectionHandler, std::atomic<bool> shouldClose);
-    void handleInput(const std::string& input);
+    StompProtocol (ConnectionHandler* connectionHandler);
+    bool handleInput(const std::string& input);
+    bool handleFrames(const std::string& msg);
 
 private:
-    void handleLogin(const std::vector<std::string>& params);
-    void handleJoin(const std::vector<std::string>& params);
-    void handleExit(const std::vector<std::string>& params);
-    void handleReport(const std::vector<std::string>& params);
-    void handleSummary(const std::vector<std::string>& params);
-    void handleLogout();
+    bool handleLogin(const std::vector<std::string>& params);
+    bool handleJoin(const std::vector<std::string>& params);
+    bool handleExit(const std::vector<std::string>& params);
+    bool handleReport(const std::vector<std::string>& params);
+    bool handleSummary(const std::vector<std::string>& params);
+    bool handleLogout();
+    bool compareEventsByTime(const Event& a, const Event& b);
+    std::vector<std::string> split(const std::string& str, char delimiter);
 
     ConnectionHandler* connectionHandler;
     std::string currentUser;
@@ -35,6 +38,5 @@ private:
     std::mutex mutex;
     // (user, (game_name, game_event))
     std::unordered_map<std::string, std::unordered_map<std::string, std::vector<Event>>> userEvents;
-
 
 };
