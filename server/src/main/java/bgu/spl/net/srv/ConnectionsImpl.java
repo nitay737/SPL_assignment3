@@ -42,9 +42,9 @@ class Subscription {
 
 public class ConnectionsImpl implements Connections<StompMessage> {
 
-    // (subscriptionName ,{connectionId,...} )
-    private ConcurrentHashMap<String, ConcurrentLinkedQueue<Subscription>> channels = new ConcurrentHashMap<>();
-    // (IdConnect, handler)
+    // (subscriptionName ,{Subscription,...} )
+    private ConcurrentHashMap<String, ConcurrentLinkedQueue<Subscription>> channels;
+    // (connectionId, handler)
     private ConcurrentHashMap<Integer, ConnectionHandler<StompMessage>> handlersId;
 
     private AtomicInteger messageId;
@@ -109,7 +109,7 @@ public class ConnectionsImpl implements Connections<StompMessage> {
         handlersId.put(connectionsId, handler);
     }
 
-    public void subscribe(String channel,int connectionId, int subId)
+    public void subscribe(String channel, int connectionId, int subId)
     {
         if(!channels.containsKey(channel))
         {
@@ -147,5 +147,10 @@ public class ConnectionsImpl implements Connections<StompMessage> {
                 isSub = true;
         }
         return isSub;
+    }
+
+    public boolean channelExist(String channel)
+    {
+        return channels.containsKey(channel);
     }
 }

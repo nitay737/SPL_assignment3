@@ -72,17 +72,16 @@ public class StompMessage {
         int i = 1;
         while (i < subMessage.length && !subMessage[i].isEmpty()) {
             String[] subHeader = subMessage[i].split(":", 2);
-            
             if (subHeader.length < 2) {
                 throw new IllegalArgumentException("Header missing value");
             }
 
             String key = subHeader[0].trim();
             String value = subHeader[1].trim();
-
             if (headers.contains(key) || key.equals("receipt")) {
                 header.put(key, value);
-                headers.remove(key);
+                if(headers.contains(key))
+                    headers.remove(key);
             } else {
                 throw new IllegalArgumentException("not a legal header: " + key);
             }
@@ -91,7 +90,7 @@ public class StompMessage {
         if(!headers.isEmpty())
             throw new IllegalArgumentException("not a legal header");
 
-        while (i<subMessage.length && subMessage[i] != "^ @") {
+        while (i<subMessage.length && subMessage[i] != "\u0000") {
             body += subMessage[i] + "\n";
         }
     }

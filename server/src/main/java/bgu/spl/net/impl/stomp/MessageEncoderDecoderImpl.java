@@ -17,7 +17,6 @@ public class MessageEncoderDecoderImpl implements MessageEncoderDecoder<StompMes
         if (nextByte == '\u0000') {
             return popString();
         }
-
         pushByte(nextByte);
         return null; //not a line yet
     }
@@ -40,6 +39,6 @@ public class MessageEncoderDecoderImpl implements MessageEncoderDecoder<StompMes
         //this is not actually required as it is the default encoding in java.
         String result = new String(bytes, 0, len, StandardCharsets.UTF_8);
         len = 0;
-        return new StompMessage(result);
+        return StompMessagingProtocolImp.convertMessage(result);
     }
 }
