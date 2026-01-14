@@ -3,6 +3,7 @@ package bgu.spl.net.impl.stomp;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Arrays;
 
 public class StompMessage {
     public enum stompCommand{
@@ -20,11 +21,11 @@ public class StompMessage {
     private stompCommand command;
     private HashMap<String,String> header;
     private String body = "";
-    private final LinkedList<String> ConnectHeaders = new LinkedList<>(List.of("accept-version","host","login","passcode"));
-    private final LinkedList<String> SendHeaders = new LinkedList<>(List.of("destination"));
-    private final LinkedList<String> SubscribeHeaders = new LinkedList<>(List.of("destination","id"));
-    private final LinkedList<String> UnsubscribeHeaders = new LinkedList<>(List.of("id"));
-    private final LinkedList<String> DisconnectHeaders = new LinkedList<>(List.of("receipt"));
+    private final LinkedList<String> ConnectHeaders = new LinkedList<>(Arrays.asList("accept-version","host","login","passcode"));
+    private final LinkedList<String> SendHeaders = new LinkedList<>(Arrays.asList("destination"));
+    private final LinkedList<String> SubscribeHeaders = new LinkedList<>(Arrays.asList("destination","id"));
+    private final LinkedList<String> UnsubscribeHeaders = new LinkedList<>(Arrays.asList("id"));
+    private final LinkedList<String> DisconnectHeaders = new LinkedList<>(Arrays.asList("receipt"));
 
     public StompMessage(String message)
     {

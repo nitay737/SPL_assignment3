@@ -7,7 +7,7 @@ int main(int argc, char *argv[]) {
     short port = std::stoi(argv[1]);
     ConnectionHandler connectionHandler(host, port);
     std::atomic<bool> shouldClose{false};
-	StompPtotocol sp()
+	StompProtocol sp()
     if (!connectionHandler.connect()) {
         std::cerr << "Could not connect to server." << std::endl;
         return 1;

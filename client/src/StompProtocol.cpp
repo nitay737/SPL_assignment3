@@ -74,10 +74,10 @@ bool StompProtocol::handleJoin(const std::vector<std::string>& params){
     }
     int curIdC = idC.fetch_add(1);
     int curIdR = idR.fetch_add(1);
-    std::string connectFrame = "SUBSCRIBE\n" +
-        "destination:" + channel + "\n" +
-        "id:" + std::to_string(curIdC) + "\n" +
-        "receipt:" + std::to_string(curIdR) + "\n" +
+    std::string connectFrame = "SUBSCRIBE\n" + 
+        "destination: " + channel + "\n" +
+        "id: " + std::to_string(curIdC) + "\n" +
+        "receipt: " + std::to_string(curIdR) + "\n" +
         "\n";
     channels.insert({channel, curIdC});
     return connectionHandler->sendFrameAscii(connectFrame, '\0');
@@ -208,7 +208,7 @@ std::vector<std::string> StompProtocol::split(const std::string& str, char delim
             word += ch;
     }
     if (!word.empty())
-        tokens.push_back(word);
+        params.push_back(word);
     return params;
 }
 
