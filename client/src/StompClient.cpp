@@ -9,6 +9,7 @@ int main(int argc, char *argv[]) {
     StompProtocol protocol;
     std::thread readerThread;
     while (!protocol.shouldTerminate()) {
+        std::cout << "Client started" << std::endl;
         std::string input;
         if (!std::getline(std::cin, input)) {
             break;
