@@ -13,7 +13,7 @@ Event::Event(std::string team_a_name, std::string team_b_name, std::string name,
             std::map<std::string, std::string> team_b_updates, std::string discription)
     : team_a_name(team_a_name), team_b_name(team_b_name), name(name),
     time(time), game_updates(game_updates), team_a_updates(team_a_updates),
-    team_b_updates(team_b_updates), description(discription), /* game_name(team_a_name+"_"+team_b_name) */
+    team_b_updates(team_b_updates), description(discription)
 {
 }
 

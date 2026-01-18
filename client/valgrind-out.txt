@@ -1,0 +1,105 @@
+==69732== Memcheck, a memory error detector
+==69732== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==69732== Using Valgrind-3.15.0-608cb11914-20190413 and LibVEX; rerun with -h for copyright info
+==69732== Command: ./bin/StompWCIClient
+==69732== Parent PID: 56022
+==69732== 
+--69732-- 
+--69732-- Valgrind options:
+--69732--    --leak-check=full
+--69732--    --show-leak-kinds=all
+--69732--    --track-origins=yes
+--69732--    --verbose
+--69732--    --log-file=valgrind-out.txt
+--69732-- Contents of /proc/version:
+--69732--   Linux version 6.6.87.2-microsoft-standard-WSL2 (root@439a258ad544) (gcc (GCC) 11.2.0, GNU ld (GNU Binutils) 2.37) #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025
+--69732-- 
+--69732-- Arch and hwcaps: AMD64, LittleEndian, amd64-cx16-lzcnt-rdtscp-sse3-ssse3-avx-avx2-bmi-f16c-rdrand
+--69732-- Page sizes: currently 4096, max supported 4096
+--69732-- Valgrind library directory: /usr/lib/x86_64-linux-gnu/valgrind
+--69732-- Reading syms from /workspaces/SPL_assignment3/client/bin/StompWCIClient
+--69732-- Reading syms from /usr/lib/x86_64-linux-gnu/ld-2.31.so
+--69732--   Considering /usr/lib/debug/.build-id/db/3ae442c4308e6250049fb6159c302cf4274fa2.debug ..
+--69732--   .. build-id is valid
+--69732-- Reading syms from /usr/lib/x86_64-linux-gnu/valgrind/memcheck-amd64-linux
+--69732--    object doesn't have a symbol table
+--69732--    object doesn't have a dynamic symbol table
+--69732-- Scheduler: using generic scheduler lock implementation.
+--69732-- Reading suppressions file: /usr/lib/x86_64-linux-gnu/valgrind/default.supp
+==69732== embedded gdbserver: reading from /tmp/vgdb-pipe-from-vgdb-to-69732-by-???-on-95568843b898
+==69732== embedded gdbserver: writing to   /tmp/vgdb-pipe-to-vgdb-from-69732-by-???-on-95568843b898
+==69732== embedded gdbserver: shared mem   /tmp/vgdb-pipe-shared-mem-vgdb-69732-by-???-on-95568843b898
+==69732== 
+==69732== TO CONTROL THIS PROCESS USING vgdb (which you probably
+==69732== don't want to do, unless you know exactly what you're doing,
+==69732== or are doing some strange experiment):
+==69732==   /usr/lib/x86_64-linux-gnu/valgrind/../../bin/vgdb --pid=69732 ...command...
+==69732== 
+==69732== TO DEBUG THIS PROCESS USING GDB: start GDB like this
+==69732==   /path/to/gdb ./bin/StompWCIClient
+==69732== and then give GDB the following command
+==69732==   target remote | /usr/lib/x86_64-linux-gnu/valgrind/../../bin/vgdb --pid=69732
+==69732== --pid is optional if only one valgrind process is running
+==69732== 
+--69732-- REDIR: 0x4022e20 (ld-linux-x86-64.so.2:strlen) redirected to 0x580c9ce2 (???)
+--69732-- REDIR: 0x4022bf0 (ld-linux-x86-64.so.2:index) redirected to 0x580c9cfc (???)
+--69732-- Reading syms from /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_core-amd64-linux.so
+--69732--    object doesn't have a symbol table
+--69732-- Reading syms from /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so
+--69732--    object doesn't have a symbol table
+==69732== WARNING: new redirection conflicts with existing -- ignoring it
+--69732--     old: 0x04022e20 (strlen              ) R-> (0000.0) 0x580c9ce2 ???
+--69732--     new: 0x04022e20 (strlen              ) R-> (2007.0) 0x0483f060 strlen
+--69732-- REDIR: 0x401f600 (ld-linux-x86-64.so.2:strcmp) redirected to 0x483ffd0 (strcmp)
+--69732-- REDIR: 0x4023380 (ld-linux-x86-64.so.2:mempcpy) redirected to 0x4843a20 (mempcpy)
+--69732-- Reading syms from /usr/lib/x86_64-linux-gnu/libpthread-2.31.so
+--69732--   Considering /usr/lib/debug/.build-id/97/53720502573b97dbac595b61fd72c2df18e078.debug ..
+--69732--   .. build-id is valid
+--69732-- Reading syms from /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28
+--69732--    object doesn't have a symbol table
+--69732-- Reading syms from /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+--69732--    object doesn't have a symbol table
+--69732-- Reading syms from /usr/lib/x86_64-linux-gnu/libc-2.31.so
+--69732--   Considering /usr/lib/debug/.build-id/57/92732f783158c66fb4f3756458ca24e46e827d.debug ..
+--69732--   .. build-id is valid
+--69732-- Reading syms from /usr/lib/x86_64-linux-gnu/libm-2.31.so
+--69732--   Considering /usr/lib/debug/.build-id/66/08e39b1fb39ded19e6e080f424e4a84ff11178.debug ..
+--69732--   .. build-id is valid
+--69732-- REDIR: 0x4b14480 (libc.so.6:memmove) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b13780 (libc.so.6:strncpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b147b0 (libc.so.6:strcasecmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b130a0 (libc.so.6:strcat) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b137e0 (libc.so.6:rindex) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b15c50 (libc.so.6:rawmemchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b30ce0 (libc.so.6:wmemchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b30820 (libc.so.6:wcscmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b145e0 (libc.so.6:mempcpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b14410 (libc.so.6:bcmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b13710 (libc.so.6:strncmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b13150 (libc.so.6:strcmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b14540 (libc.so.6:memset) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b307e0 (libc.so.6:wcschr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b13670 (libc.so.6:strnlen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b13230 (libc.so.6:strcspn) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b14800 (libc.so.6:strncasecmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b131d0 (libc.so.6:strcpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b14950 (libc.so.6:memcpy@@GLIBC_2.14) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b31f50 (libc.so.6:wcsnlen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b30860 (libc.so.6:wcscpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b13820 (libc.so.6:strpbrk) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b13100 (libc.so.6:index) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b13630 (libc.so.6:strlen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b1cbb0 (libc.so.6:memrchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b14850 (libc.so.6:strcasecmp_l) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b143d0 (libc.so.6:memchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b30930 (libc.so.6:wcslen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b13ae0 (libc.so.6:strspn) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b14750 (libc.so.6:stpncpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b146f0 (libc.so.6:stpcpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b15c90 (libc.so.6:strchrnul) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4b148a0 (libc.so.6:strncasecmp_l) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--69732-- REDIR: 0x4bfc730 (libc.so.6:__strrchr_avx2) redirected to 0x483ea10 (rindex)
+--69732-- REDIR: 0x4b0e0e0 (libc.so.6:malloc) redirected to 0x483b780 (malloc)
+--69732-- REDIR: 0x4bfc900 (libc.so.6:__strlen_avx2) redirected to 0x483ef40 (strlen)
+--69732-- REDIR: 0x4bf8ef0 (libc.so.6:__memcmp_avx2_movbe) redirected to 0x48421e0 (bcmp)
+--69732-- REDIR: 0x4bf7df0 (libc.so.6:__strcmp_avx2) redirected to 0x483fed0 (strcmp)

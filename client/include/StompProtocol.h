@@ -2,7 +2,6 @@
 
 #include "../include/ConnectionHandler.h"
 #include "../include/event.h"
-
 #include <string>
 #include <vector>
 #include <map>
@@ -14,9 +13,15 @@
 class StompProtocol
 {
 public:
-    StompProtocol (ConnectionHandler* connectionHandler);
+    StompProtocol();
+    ~StompProtocol();
+    StompProtocol(const StompProtocol&) = delete;
+    StompProtocol& operator=(const StompProtocol&) = delete;
     bool handleInput(const std::string& input);
     bool handleFrames(const std::string& msg);
+    bool shouldTerminate();
+    bool isClientLoggedIn();
+    ConnectionHandler* getConnectionHandler();
 
 private:
     bool handleLogin(const std::vector<std::string>& params);
@@ -25,12 +30,17 @@ private:
     bool handleReport(const std::vector<std::string>& params);
     bool handleSummary(const std::vector<std::string>& params);
     bool handleLogout();
-    bool compareEventsByTime(const Event& a, const Event& b);
+    bool handleConnected();
+    bool handleMessage(const std::string& msg);
+    bool handleReceipt(const std::string& msg);
+    bool handleError(const std::string& msg);
+    static bool compareEventsByTime(const Event& a, const Event& b);
     std::vector<std::string> split(const std::string& str, char delimiter);
 
     ConnectionHandler* connectionHandler;
+    std::atomic<bool> isLoggedIn{false};
+    std::atomic<bool> shouldClose{false};
     std::string currentUser;
-    std::atomic<bool> shouldClose;
     std::atomic<int> idC;
     std::atomic<int> idR;
     // (game_name, id)
@@ -38,5 +48,13 @@ private:
     std::mutex mutex;
     // (user, (game_name, game_event))
     std::unordered_map<std::string, std::unordered_map<std::string, std::vector<Event>>> userEvents;
+    struct receiptInf {
+        std::string operation;
+        std::string game_name;
+        receiptInf() : operation(""), game_name("") {}
+        receiptInf(std::string op, std::string gn) : operation(op), game_name(gn) {}
+    };
+    // (receiptId, receiptInf)
+    std::unordered_map<int, receiptInf> receipts;
 
 };
