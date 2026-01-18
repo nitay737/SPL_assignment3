@@ -18,7 +18,7 @@ public class StompServer {
 
         }else if(args[1].equals("tpc"))
         {
-            server = new BaseServer<StompMessage>(Integer.parseInt(args[0]),() -> new StompMessagingProtocolImp(), () -> new MessageEncoderDecoderImpl()) {
+            server = new BaseServer(Integer.parseInt(args[0]),() -> new StompMessagingProtocolImp(), () -> new MessageEncoderDecoderImpl()) {
             @Override
             protected void execute(BlockingConnectionHandler<StompMessage>  handler) {
                 new Thread(handler).start();

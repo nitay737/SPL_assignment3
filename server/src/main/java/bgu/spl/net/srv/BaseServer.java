@@ -3,28 +3,36 @@ package bgu.spl.net.srv;
 import bgu.spl.net.api.MessageEncoderDecoder;
 import bgu.spl.net.api.MessagingProtocol;
 import bgu.spl.net.api.StompMessagingProtocol;
+import bgu.spl.net.impl.stomp.StompMessage;
+import bgu.spl.net.impl.stomp.StompMessagingProtocolImp;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-public abstract class BaseServer<T> implements Server<T> {
+public abstract class BaseServer implements Server<StompMessage> {
 
     private final int port;
-    private final Supplier<StompMessagingProtocol<T>> protocolFactory;
-    private final Supplier<MessageEncoderDecoder<T>> encdecFactory;
+    private final Supplier<StompMessagingProtocolImp> protocolFactory;
+    private final Supplier<MessageEncoderDecoder<StompMessage>> encdecFactory;
     private ServerSocket sock;
+    private ConnectionsImpl connections;
+    private AtomicInteger connectionId;
 
     public BaseServer(
             int port,
-            Supplier<StompMessagingProtocol<T>> protocolFactory,
-            Supplier<MessageEncoderDecoder<T>> encdecFactory) {
+            Supplier<StompMessagingProtocolImp> protocolFactory,
+            Supplier<MessageEncoderDecoder<StompMessage>> encdecFactory) {
 
         this.port = port;
         this.protocolFactory = protocolFactory;
         this.encdecFactory = encdecFactory;
 		this.sock = null;
+        connections = new ConnectionsImpl(new ConcurrentHashMap<>());
+        connectionId = new AtomicInteger(0);
     }
 
     @Override
@@ -38,12 +46,14 @@ public abstract class BaseServer<T> implements Server<T> {
             while (!Thread.currentThread().isInterrupted()) {
 
                 Socket clientSock = serverSock.accept();
-
-                BlockingConnectionHandler<T> handler = new BlockingConnectionHandler<>(
+                StompMessagingProtocolImp protocol = protocolFactory.get();
+                BlockingConnectionHandler<StompMessage> handler = new BlockingConnectionHandler<>(
                         clientSock,
                         encdecFactory.get(),
-                        protocolFactory.get());
-
+                        protocol);
+                int ownId = connectionId.getAndIncrement();
+                connections.connect(ownId,handler);
+                protocol.start(ownId,connections);
                 execute(handler);
             }
         } catch (IOException ex) {
@@ -58,6 +68,6 @@ public abstract class BaseServer<T> implements Server<T> {
 			sock.close();
     }
 
-    protected abstract void execute(BlockingConnectionHandler<T>  handler);
+    protected abstract void execute(BlockingConnectionHandler<StompMessage>  handler);
 
 }
