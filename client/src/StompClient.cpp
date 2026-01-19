@@ -17,6 +17,8 @@ int main(int argc, char *argv[]) {
         bool wasLoggedInBefore = protocol.isClientLoggedIn();
         protocol.handleInput(input);
         if (!wasLoggedInBefore && protocol.isClientLoggedIn()) {
+            if (readerThread.joinable())
+                readerThread.join();
             readerThread = std::thread([&protocol]() {
                 while (protocol.isClientLoggedIn()) {
                     ConnectionHandler* ch = protocol.getConnectionHandler();

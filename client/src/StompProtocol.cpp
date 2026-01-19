@@ -45,7 +45,6 @@ bool StompProtocol::handleInput(const std::string& input){
 }
 
 bool StompProtocol::handleFrames(const std::string &msg){
-    std::cout<< msg << std::endl;
     std::string command;
     size_t i = 0;
     while (i < msg.length() && msg[i] != '\n') {
@@ -123,7 +122,6 @@ bool StompProtocol::handleLogin(const std::vector<std::string>& params){
         connectionHandler = nullptr;
         return false;
     }
-    std::cout<<answer<<std::endl;
     if (answer.find("CONNECTED") != std::string::npos) {
         return handleConnected();
     } 
@@ -217,7 +215,6 @@ bool StompProtocol::handleReport(const std::vector<std::string>& params){
         if (!connectionHandler->sendFrameAscii(connectFrame, '\0'))
             std::cerr << "Error sending SEND frame" << std::endl;
     }
-    std::cout<<"sent report"<< std::endl;
     return true;
 }
 
@@ -248,7 +245,8 @@ bool  StompProtocol::handleSummary(const std::vector<std::string>& params){
     }
     std::sort(events.begin(), events.end(), compareEventsByTime);
 
-    file << game_name << "\n Game stats:\n General stats:" << std::endl;
+    file << team_a_name << " vs " << team_b_name << std::endl;
+    file << "Game stats:\nGeneral stats:" << std::endl;
     for (const auto& pair : game_updates) {
             file << pair.first << ": " << pair.second << std::endl;
         }
@@ -393,19 +391,13 @@ bool StompProtocol::handleReceipt(const std::string &msg){
 }
 
 bool StompProtocol::handleError(const std::string &msg) {
-    std::cout<<"ERRORRR"<<std::endl;
     std::vector<std::string> lines = split(msg, '\n');
-    bool isBody = false;
-    for (const std::string& line : lines) {
-        if (isBody) {
-            std::cerr << line << std::endl;
-        }
-        else if (line.empty()) {
-            isBody = true;
-        }
+    size_t colonPos = lines[2].find(':');
+    if (colonPos != std::string::npos){
+        std::cerr << "ERROR: " << lines[2].substr(colonPos + 1) << std::endl;
     }
     connectionHandler->close();
-    shouldClose.store(true);
+    //shouldClose.store(true);
     return true;
 }
 
