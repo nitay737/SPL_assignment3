@@ -31,7 +31,6 @@ public class StompMessage {
     {
         header = new HashMap<>();
         parse(message);
-        System.out.println("after parse:\n"+getMessage());
     }
 
     public StompMessage(stompCommand command,HashMap<String,String> header, String body)
@@ -43,7 +42,6 @@ public class StompMessage {
 
     private void parse(String message)
     {
-        System.out.println("before parse:\n"+message);
         if(message.length() == 0)
             throw new IllegalArgumentException();
         String[] subMessage = message.split("\n");
@@ -73,7 +71,6 @@ public class StompMessage {
                 throw new IllegalArgumentException("not a legal command");
         }
         int i = 1;
-        System.out.println("start parsing");
         while (i < subMessage.length && !subMessage[i].isEmpty()) {
             System.out.println(subMessage[i]);
             String[] subHeader = subMessage[i].split(":", 2);

@@ -4,12 +4,12 @@
 #include <atomic>
 #include <unordered_map>
 #include <mutex>
-#include <iostream> 
-#include <fstream>   
+#include <iostream>
+#include <fstream> 
 #include <algorithm>
 
 StompProtocol::StompProtocol(): connectionHandler(nullptr), isLoggedIn(false), shouldClose(false), currentUser(""),idC(0),
-      idR(0),channels(),mutex(),userEvents(),receipts() {}
+    idR(0),channels(),mutex(),userEvents(),receipts() {}
 
 StompProtocol::~StompProtocol() {
     if (connectionHandler) {
@@ -123,7 +123,7 @@ bool StompProtocol::handleLogin(const std::vector<std::string>& params){
         return false;
     }
     if (answer.find("CONNECTED") != std::string::npos) {
-        return handleConnected(); 
+        return handleConnected();
     } 
     else if (answer.find("ERROR") != std::string::npos) {
         handleError(answer);
@@ -357,7 +357,6 @@ bool StompProtocol::handleMessage(const std::string& msg) {
 }
 
 bool StompProtocol::handleReceipt(const std::string &msg){
-    std::cout<<"handle receipt"<<std::endl;
     std::vector<std::string> lines = split(msg, '\n'); 
     if (lines.size() < 2) return false;
     size_t colonPos = lines[1].find(':');
@@ -402,6 +401,8 @@ bool StompProtocol::handleError(const std::string &msg) {
             isBody = true;
         }
     }
+    connectionHandler->close();
+    shouldClose.store(true);
     return true;
 }
 

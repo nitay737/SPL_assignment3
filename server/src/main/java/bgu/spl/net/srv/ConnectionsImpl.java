@@ -51,7 +51,6 @@ public class ConnectionsImpl implements Connections<StompMessage> {
         if(handlersId.containsKey(connectionId))
         {
             handlersId.get(connectionId).send(msg);
-            System.out.println("Server response:\n"+ msg.getMessage());
             return true;
         }
         return false;
@@ -79,17 +78,13 @@ public class ConnectionsImpl implements Connections<StompMessage> {
     {
         if(handlersId.containsKey(connectionId))
         {
-            try{
-                handlersId.get(connectionId).close();
-                for (String channel : channels.keySet()) {
-                    for(Subscription sub : channels.get(channel))
-                    {
-                        if(sub.connectionId == connectionId)
-                            channels.get(channel).remove(sub);
-                    }
+            handlersId.remove(connectionId);
+            for (String channel : channels.keySet()) {
+                for(Subscription sub : channels.get(channel))
+                {
+                    if(sub.connectionId == connectionId)
+                        channels.get(channel).remove(sub);
                 }
-            }catch(IOException e){
-                e.printStackTrace();
             }
         }
     }

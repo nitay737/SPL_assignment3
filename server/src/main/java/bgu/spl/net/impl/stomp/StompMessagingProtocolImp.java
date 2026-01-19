@@ -27,7 +27,6 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
 
     public void process(StompMessage stomp)
     {
-        System.out.println("got from client:\n"+stomp.getMessage());
         //Send receipt if the header exists
         String receiptId = stomp.getHeader("receipt");
         if(receiptId != "")
@@ -119,7 +118,6 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
     {
         StompMessage send = new StompMessage(StompMessage.stompCommand.RECEIPT,new HashMap<>(),"");
         send.addHeader("receipt-id", receiptId);
-        System.out.println("sent receipt");
         connections.send(ownerId, send);
     }
 
