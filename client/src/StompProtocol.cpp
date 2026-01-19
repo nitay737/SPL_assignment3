@@ -127,9 +127,6 @@ bool StompProtocol::handleLogin(const std::vector<std::string>& params){
     } 
     else if (answer.find("ERROR") != std::string::npos) {
         handleError(answer);
-        connectionHandler->close();
-        delete connectionHandler;
-        connectionHandler = nullptr;
         return false;
     } 
     else {
@@ -218,6 +215,7 @@ bool StompProtocol::handleReport(const std::vector<std::string>& params){
         if (!connectionHandler->sendFrameAscii(connectFrame, '\0'))
             std::cerr << "Error sending SEND frame" << std::endl;
     }
+    std::cout<<"sent report"<< std::endl;
     return true;
 }
 
@@ -359,6 +357,7 @@ bool StompProtocol::handleMessage(const std::string& msg) {
 }
 
 bool StompProtocol::handleReceipt(const std::string &msg){
+    std::cout<<"handle receipt"<<std::endl;
     std::vector<std::string> lines = split(msg, '\n'); 
     if (lines.size() < 2) return false;
     size_t colonPos = lines[1].find(':');
@@ -403,8 +402,6 @@ bool StompProtocol::handleError(const std::string &msg) {
             isBody = true;
         }
     }
-    connectionHandler->close();
-    shouldClose.store(true);
     return true;
 }
 

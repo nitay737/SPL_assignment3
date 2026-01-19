@@ -14,11 +14,11 @@ public class StompServer {
     public static void main(String[] args) {
         Server<StompMessage> server = null;
         if(args[1].equals("reactor")){
-            server = new Reactor<StompMessage>(5, Integer.parseInt(args[0]), () -> new StompMessagingProtocolImp(), () -> new MessageEncoderDecoderImpl());
+            server = new Reactor(3, Integer.parseInt(args[0]), () -> new StompMessagingProtocolImp(), () -> new MessageEncoderDecoderImpl());
 
         }else if(args[1].equals("tpc"))
         {
-            server = new BaseServer<StompMessage>(Integer.parseInt(args[0]),() -> new StompMessagingProtocolImp(), () -> new MessageEncoderDecoderImpl()) {
+            server = new BaseServer(Integer.parseInt(args[0]),() -> new StompMessagingProtocolImp(), () -> new MessageEncoderDecoderImpl()) {
             @Override
             protected void execute(BlockingConnectionHandler<StompMessage>  handler) {
                 new Thread(handler).start();

@@ -1,24 +1,11 @@
 package bgu.spl.net.srv;
 
 import java.io.IOException;
-import java.net.Socket;
-import java.nio.channels.SocketChannel;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import bgu.spl.net.api.MessageEncoderDecoder;
-import bgu.spl.net.api.MessagingProtocol;
-import bgu.spl.net.api.StompMessagingProtocol;
 import bgu.spl.net.impl.stomp.*;
-import bgu.spl.net.impl.data.User;
 
 class Subscription {
     int connectionId;
@@ -46,12 +33,15 @@ public class ConnectionsImpl implements Connections<StompMessage> {
     // (connectionId, handler)
     private ConcurrentHashMap<Integer, ConnectionHandler<StompMessage>> handlersId;
 
+    private ConcurrentHashMap<String,String> data;
+
     private AtomicInteger messageId;
     
     public ConnectionsImpl(ConcurrentHashMap<Integer, ConnectionHandler<StompMessage>> users)
     {
         messageId = new AtomicInteger(0);
         channels = new ConcurrentHashMap<>();
+        data = new ConcurrentHashMap<>();
         handlersId = users;
     }
 
@@ -61,6 +51,7 @@ public class ConnectionsImpl implements Connections<StompMessage> {
         if(handlersId.containsKey(connectionId))
         {
             handlersId.get(connectionId).send(msg);
+            System.out.println("Server response:\n"+ msg.getMessage());
             return true;
         }
         return false;
@@ -103,6 +94,14 @@ public class ConnectionsImpl implements Connections<StompMessage> {
         }
     }
 
+    public boolean login(String username,String password)
+    {
+        if(data.containsKey(username))
+            return data.get(username).equals(password);
+        data.put(username, password);
+        return true;
+    }
+    
     public void connect(Integer connectionsId, ConnectionHandler<StompMessage> handler)
     {
         handlersId.put(connectionsId, handler);

@@ -27,23 +27,25 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
 
     public void process(StompMessage stomp)
     {
+        System.out.println("got from client:\n"+stomp.getMessage());
+        //Send receipt if the header exists
+        String receiptId = stomp.getHeader("receipt");
+        if(receiptId != "")
+            sendReceipt(receiptId);
         switch (stomp.getCommand()) {
             case CONNECT:
-                data = Database.getInstance();
                 //Trying logging in
-                LoginStatus status = data.login(ownerId, stomp.getHeader("login"), stomp.getHeader("passcode"));
                 StompMessage response;
                 
-                if(status == LoginStatus.WRONG_PASSWORD || status == LoginStatus.ALREADY_LOGGED_IN){
+                if(!connections.login(stomp.getHeader("login"), stomp.getHeader("passcode"))){
                     //Login failed
-                    sendError(stomp, status.toString());
+                    sendError(stomp, "Wrong password");
                 }
                 else
                 {
                     //Login succeeded
-                    response = new StompMessage("CONNECTED\n" +
-                                                "version:1.2\n \n" +
-                                                '\u0000');
+                    response = new StompMessage(StompMessage.stompCommand.CONNECTED,new HashMap<>(),"");
+                    response.addHeader("version", "1.2");
                     connections.send(ownerId, response);
                 }
                 break;
@@ -81,10 +83,7 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
             default:
                 break;
         }
-        //Send receipt if the header exists
-        String receiptId = stomp.getHeader("receipt");
-        if(receiptId != "")
-            sendReceipt(receiptId);
+
 
     }
 
@@ -110,7 +109,7 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
         StompMessage error = new StompMessage(StompMessage.stompCommand.ERROR, new HashMap<>(), "the message:\n"+ "-----\n"+
         stomp.getMessage()+"-----\n");
         error.addHeader("receipt-id", stomp.getHeader("receipt"));
-        error.addHeader("message", "you are not subscribed to this channel");
+        error.addHeader("message", errorMessage);
         connections.send(ownerId, error);
         connections.disconnect(ownerId);
         shouldClose = true;
@@ -118,9 +117,9 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
 
     private void sendReceipt(String receiptId)
     {
-        StompMessage send = new StompMessage("RECEIPT\n" +
-                        "receipt-id :"+receiptId+"\n" +
-                        '\u0000');
+        StompMessage send = new StompMessage(StompMessage.stompCommand.RECEIPT,new HashMap<>(),"");
+        send.addHeader("receipt-id", receiptId);
+        System.out.println("sent receipt");
         connections.send(ownerId, send);
     }
 
