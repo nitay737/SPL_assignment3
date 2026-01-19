@@ -48,6 +48,7 @@ public class ConnectionsImpl implements Connections<StompMessage> {
     @Override
     public boolean send(int connectionId, StompMessage msg)
     {
+        System.out.println(msg.getMessage());
         if(handlersId.containsKey(connectionId))
         {
             handlersId.get(connectionId).send(msg);

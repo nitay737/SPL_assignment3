@@ -45,6 +45,7 @@ bool StompProtocol::handleInput(const std::string& input){
 }
 
 bool StompProtocol::handleFrames(const std::string &msg){
+    std::cout<< msg << std::endl;
     std::string command;
     size_t i = 0;
     while (i < msg.length() && msg[i] != '\n') {
@@ -122,6 +123,7 @@ bool StompProtocol::handleLogin(const std::vector<std::string>& params){
         connectionHandler = nullptr;
         return false;
     }
+    std::cout<<answer<<std::endl;
     if (answer.find("CONNECTED") != std::string::npos) {
         return handleConnected();
     } 
@@ -391,6 +393,7 @@ bool StompProtocol::handleReceipt(const std::string &msg){
 }
 
 bool StompProtocol::handleError(const std::string &msg) {
+    std::cout<<"ERRORRR"<<std::endl;
     std::vector<std::string> lines = split(msg, '\n');
     bool isBody = false;
     for (const std::string& line : lines) {

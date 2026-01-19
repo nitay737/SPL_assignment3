@@ -15,7 +15,6 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
     private int ownerId;
     private ConnectionsImpl connections;
     private boolean shouldClose;
-    private Database data;
 
     @Override
     public void start(int connectionId, Connections<StompMessage> connections)
@@ -105,11 +104,12 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
 
     private void sendError(StompMessage stomp ,String errorMessage)
     {
+        System.out.println(errorMessage);
         StompMessage error = new StompMessage(StompMessage.stompCommand.ERROR, new HashMap<>(), "the message:\n"+ "-----\n"+
         stomp.getMessage()+"-----\n");
         error.addHeader("receipt-id", stomp.getHeader("receipt"));
         error.addHeader("message", errorMessage);
-        connections.send(ownerId, error);
+        System.out.println(connections.send(ownerId, error));
         connections.disconnect(ownerId);
         shouldClose = true;
     }
