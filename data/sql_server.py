@@ -35,29 +35,31 @@ def init_database():
         cursor = conn.cursor()
 
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS Users (
+            CREATE TABLE IF NOT EXISTS users (
                 username TEXT PRIMARY KEY,
-                password TEXT NOT NULL
+                password TEXT NOT NULL,
+                registration_date DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        
+
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS Logins (
+            CREATE TABLE IF NOT EXISTS login_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT NOT NULL,
                 login_time DATETIME DEFAULT CURRENT_TIMESTAMP,
                 logout_time DATETIME DEFAULT NULL,
-                FOREIGN KEY(username) REFERENCES Users(username)
+                FOREIGN KEY(username) REFERENCES users(username)
             )
         ''')
         
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS Reports (
+            CREATE TABLE IF NOT EXISTS file_tracking (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT NOT NULL,
                 filename TEXT NOT NULL,
+                game_channel TEXT, 
                 upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(username) REFERENCES Users(username)
+                FOREIGN KEY(username) REFERENCES users(username)
             )
         ''')
         
@@ -81,7 +83,12 @@ def execute_sql_query(sql_query: str) -> str:
             cursor = conn.cursor()
             cursor.execute(sql_query)
             rows = cursor.fetchall()
-            return str(rows)
+            if not rows:
+                return "SUCCESS"
+            formatted_rows = []
+            for row in rows:
+                formatted_rows.append(str(row))
+            return "SUCCESS|" + "|".join(formatted_rows)
     except Exception as e:
         return f"ERROR: {str(e)}"
 

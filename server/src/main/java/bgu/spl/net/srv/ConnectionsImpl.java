@@ -106,12 +106,8 @@ public class ConnectionsImpl implements Connections<StompMessage> {
 
     public void subscribe(String channel, int connectionId, int subId)
     {
-        if(!channels.containsKey(channel))
-        {
-            channels.put(channel, new ConcurrentLinkedQueue<>());
-        }
+        channels.putIfAbsent(channel, new ConcurrentLinkedQueue<>());
         channels.get(channel).add(new Subscription(connectionId, subId));
-
     }
 
     public void unsubscribe(int connectionId, int subId)

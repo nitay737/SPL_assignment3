@@ -22,7 +22,7 @@ public class StompMessage {
     private HashMap<String,String> header;
     private String body = "";
     private final LinkedList<String> ConnectHeaders = new LinkedList<>(Arrays.asList("accept-version","host","login","passcode"));
-    private final LinkedList<String> SendHeaders = new LinkedList<>(Arrays.asList("destination"));
+    private final LinkedList<String> SendHeaders = new LinkedList<>(Arrays.asList("destination","filename"));
     private final LinkedList<String> SubscribeHeaders = new LinkedList<>(Arrays.asList("destination","id"));
     private final LinkedList<String> UnsubscribeHeaders = new LinkedList<>(Arrays.asList("id"));
     private final LinkedList<String> DisconnectHeaders = new LinkedList<>(Arrays.asList("receipt"));

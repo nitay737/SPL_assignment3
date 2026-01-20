@@ -19,8 +19,6 @@ public:
     StompProtocol& operator=(const StompProtocol&) = delete;
     bool handleInput(const std::string& input);
     bool handleFrames(const std::string& msg);
-    bool shouldTerminate();
-    bool isClientLoggedIn();
     ConnectionHandler* getConnectionHandler();
 
 private:
@@ -38,8 +36,6 @@ private:
     std::vector<std::string> split(const std::string& str, char delimiter);
 
     ConnectionHandler* connectionHandler;
-    std::atomic<bool> isLoggedIn{false};
-    std::atomic<bool> shouldClose{false};
     std::string currentUser;
     std::atomic<int> idC;
     std::atomic<int> idR;

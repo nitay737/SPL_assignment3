@@ -8,7 +8,7 @@
 #include <fstream> 
 #include <algorithm>
 
-StompProtocol::StompProtocol(): connectionHandler(nullptr), isLoggedIn(false), shouldClose(false), currentUser(""),idC(0),
+StompProtocol::StompProtocol(): connectionHandler(nullptr), currentUser(""), idC(0),
     idR(0),channels(),mutex(),userEvents(),receipts() {}
 
 StompProtocol::~StompProtocol() {
@@ -65,23 +65,11 @@ bool StompProtocol::handleFrames(const std::string &msg){
     }
 }
 
-bool StompProtocol::shouldTerminate(){
-    return shouldClose.load();
-}
-
-bool StompProtocol::isClientLoggedIn(){
-    return isLoggedIn.load();
-}
-
 ConnectionHandler* StompProtocol::getConnectionHandler() {
     return connectionHandler;
 }
 
 bool StompProtocol::handleLogin(const std::vector<std::string>& params){
-    if (isLoggedIn) {
-        std::cout << "The client is already logged in, log out before trying again" << std::endl;
-        return false;
-    }
     currentUser = params[2];
     std::string connectFrame = std::string("CONNECT\n") +
         "accept-version:1.2\n" +
@@ -200,7 +188,8 @@ bool StompProtocol::handleReport(const std::vector<std::string>& params){
         for (const auto& pair : evn.get_team_b_updates())
             game_updates += pair.first + ": " + pair.second + "\n";
         std::string connectFrame = std::string("SEND\n") +
-        "destination:" + game_name + "\n\n" +
+        "destination:" + game_name + "\n" +
+        "filename:" + params[1] + "\n\n" +
         "user: " + currentUser + "\n" +
         "team a: " + nne.team_a_name + "\n" +
         "team b: " + nne.team_b_name + "\n" +
@@ -212,8 +201,10 @@ bool StompProtocol::handleReport(const std::vector<std::string>& params){
         "description:\n" +
         evn.get_discription() + "\n" +
         "\n";
-        if (!connectionHandler->sendFrameAscii(connectFrame, '\0'))
+        if (!connectionHandler->sendFrameAscii(connectFrame, '\0')){
             std::cerr << "Error sending SEND frame" << std::endl;
+            return false;
+        }
     }
     return true;
 }
@@ -274,8 +265,6 @@ bool StompProtocol::handleLogout(){
         "\n";
     std::lock_guard<std::mutex> lock (mutex);
     receipts[curIdR] = {"logout",""};
-    channels.clear();
-    idC.store(0);
     if (!connectionHandler->sendFrameAscii(connectFrame, '\0')) {
         std::cerr << "Error sending DISCONNECT frame" << std::endl;
         return false;
@@ -284,7 +273,6 @@ bool StompProtocol::handleLogout(){
 }
 
 bool StompProtocol::handleConnected(){
-    isLoggedIn.store(true);
     std::cout << "connected successfully" << std::endl;
     return true;
 }
@@ -356,6 +344,7 @@ bool StompProtocol::handleMessage(const std::string& msg) {
     return true;
 }
 
+
 bool StompProtocol::handleReceipt(const std::string &msg){
     std::vector<std::string> lines = split(msg, '\n'); 
     if (lines.size() < 2) return false;
@@ -379,9 +368,15 @@ bool StompProtocol::handleReceipt(const std::string &msg){
             } 
             else if (operation == "logout") {
                 connectionHandler->close();
-                isLoggedIn.store(false);
-                shouldClose.store(true);
+                delete connectionHandler;
+                connectionHandler = nullptr;
                 receipts.erase(it);
+                currentUser = "";
+                idC.store(0);
+                idR.store(0);
+                channels.clear();
+                receipts.clear();
+                userEvents.clear(); 
                 return true;
             }
         }
@@ -396,8 +391,18 @@ bool StompProtocol::handleError(const std::string &msg) {
     if (colonPos != std::string::npos){
         std::cerr << "ERROR: " << lines[2].substr(colonPos + 1) << std::endl;
     }
-    //connectionHandler->close();
-    //shouldClose.store(true);
+    try {
+        connectionHandler->close();
+    } catch (...){}
+    delete connectionHandler;
+    connectionHandler = nullptr;
+    currentUser = "";
+    idC.store(0);
+    idR.store(0);
+    std::lock_guard<std::mutex> lock(mutex);
+    channels.clear();
+    receipts.clear();
+    userEvents.clear(); 
     return true;
 }
 
@@ -410,16 +415,13 @@ std::vector<std::string> StompProtocol::split(const std::string& str, char delim
     std::string word;
     for (char ch : str){
         if (ch == delimiter){
-            if (!word.empty()){
-                params.push_back(word);
-                word.clear();
-            }
+            params.push_back(word);
+            word.clear();
         }
         else
             word += ch;
     }
-    if (!word.empty())
-        params.push_back(word);
+    params.push_back(word);
     return params;
 }
 
