@@ -2,6 +2,7 @@ package bgu.spl.net.impl.stomp;
 
 import com.google.common.base.Supplier;
 
+import bgu.spl.net.impl.data.DatabaseService;
 import bgu.spl.net.impl.echo.EchoProtocol;
 import bgu.spl.net.impl.echo.LineMessageEncoderDecoder;
 import bgu.spl.net.srv.BaseServer;
@@ -27,5 +28,8 @@ public class StompServer {
         }
 
         server.serve();
+
+        DatabaseService db = new DatabaseService();
+        db.printReport();
     }
 }

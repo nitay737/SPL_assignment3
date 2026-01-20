@@ -33,7 +33,7 @@ public class ConnectionsImpl implements Connections<StompMessage> {
     // (connectionId, handler)
     private ConcurrentHashMap<Integer, ConnectionHandler<StompMessage>> handlersId;
 
-    private ConcurrentHashMap<String,String> data;
+    private ConcurrentHashMap<Integer,String> data;
 
     private AtomicInteger messageId;
     
@@ -48,7 +48,6 @@ public class ConnectionsImpl implements Connections<StompMessage> {
     @Override
     public boolean send(int connectionId, StompMessage msg)
     {
-        System.out.println(msg.getMessage());
         if(handlersId.containsKey(connectionId))
         {
             handlersId.get(connectionId).send(msg);
@@ -80,6 +79,7 @@ public class ConnectionsImpl implements Connections<StompMessage> {
         if(handlersId.containsKey(connectionId))
         {
             handlersId.remove(connectionId);
+            data.remove(connectionId);
             for (String channel : channels.keySet()) {
                 for(Subscription sub : channels.get(channel))
                 {
@@ -90,12 +90,13 @@ public class ConnectionsImpl implements Connections<StompMessage> {
         }
     }
 
-    public boolean login(String username,String password)
+    public boolean login(Integer ownId,String username)
     {
-        if(data.containsKey(username))
-            return data.get(username).equals(password);
-        data.put(username, password);
-        return true;
+        if (!data.containsKey(ownId)){
+            data.put(ownId, username);
+            return true;
+        }
+       return false;
     }
     
     public void connect(Integer connectionsId, ConnectionHandler<StompMessage> handler)
@@ -146,5 +147,9 @@ public class ConnectionsImpl implements Connections<StompMessage> {
     public boolean channelExist(String channel)
     {
         return channels.containsKey(channel);
+    }
+
+    public String getUserName(int connectionId){
+        return data.get(connectionId);
     }
 }

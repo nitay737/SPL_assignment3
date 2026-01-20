@@ -396,7 +396,7 @@ bool StompProtocol::handleError(const std::string &msg) {
     if (colonPos != std::string::npos){
         std::cerr << "ERROR: " << lines[2].substr(colonPos + 1) << std::endl;
     }
-    connectionHandler->close();
+    //connectionHandler->close();
     //shouldClose.store(true);
     return true;
 }

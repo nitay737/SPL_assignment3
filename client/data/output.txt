@@ -1,4 +1,4 @@
-Germany VS Japan
+Germany vs Japan
 Game stats:
 General stats:
 active: true

@@ -72,7 +72,6 @@ public class StompMessage {
         }
         int i = 1;
         while (i < subMessage.length && !subMessage[i].isEmpty()) {
-            System.out.println(subMessage[i]);
             String[] subHeader = subMessage[i].split(":", 2);
             if (subHeader.length < 2) {
                 throw new IllegalArgumentException("Header missing value");

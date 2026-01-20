@@ -6,6 +6,7 @@ import java.lang.String;
 
 import bgu.spl.net.api.StompMessagingProtocol;
 import bgu.spl.net.impl.data.Database;
+import bgu.spl.net.impl.data.DatabaseService;
 import bgu.spl.net.impl.data.LoginStatus;
 import bgu.spl.net.srv.Connections;
 import bgu.spl.net.srv.ConnectionsImpl;
@@ -15,6 +16,7 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
     private int ownerId;
     private ConnectionsImpl connections;
     private boolean shouldClose;
+    private DatabaseService db;
 
     @Override
     public void start(int connectionId, Connections<StompMessage> connections)
@@ -22,6 +24,7 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
         ownerId = connectionId;
         this.connections = (ConnectionsImpl)connections;
         shouldClose = false;
+        db = new DatabaseService();
     }
 
     public void process(StompMessage stomp)
@@ -34,14 +37,24 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
             case CONNECT:
                 //Trying logging in
                 StompMessage response;
-                
-                if(!connections.login(stomp.getHeader("login"), stomp.getHeader("passcode"))){
-                    //Login failed
-                    sendError(stomp, "Wrong password");
-                }
-                else
-                {
-                    //Login succeeded
+                String loginUsername = stomp.getHeader("login");
+                String loginPasscode = stomp.getHeader("passcode");
+                String savedPassword = db.getPassword(loginUsername);
+                if (savedPassword != null) {
+                    if (!savedPassword.equals(loginPasscode)) {
+                        sendError(stomp, "Wrong password");
+                    }
+                    else {
+                        db.addLogin(stomp.getHeader("login"));
+                        connections.login(ownerId, stomp.getHeader("login"));
+                        response = new StompMessage(StompMessage.stompCommand.CONNECTED,new HashMap<>(),"");
+                        response.addHeader("version", "1.2");
+                        connections.send(ownerId, response);
+                    }
+                } else {
+                    db.registerUser(loginUsername, loginPasscode);
+                    db.addLogin(stomp.getHeader("login"));
+                    connections.login(ownerId, stomp.getHeader("login"));
                     response = new StompMessage(StompMessage.stompCommand.CONNECTED,new HashMap<>(),"");
                     response.addHeader("version", "1.2");
                     connections.send(ownerId, response);
@@ -54,7 +67,11 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
                 //Checks if the user is subed
                 else if(!connections.isSubed(stomp.getHeader("destination"), ownerId))
                     sendError(stomp, "you are not subscribed to this channel");
-                connections.send(stomp.getHeader("destination"), stomp);
+                else {
+                    connections.send(stomp.getHeader("destination"), stomp);
+                    String gameName = stomp.getHeader("destination");
+                    db.addFileReport(connections.getUserName(ownerId), gameName);
+                }
                 break;
             case SUBSCRIBE:
                     connections.subscribe(stomp.getHeader("destination"), Integer.parseInt(stomp.getHeader("id")), ownerId);
@@ -63,6 +80,7 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
                 connections.unsubscribe(ownerId, Integer.parseInt(stomp.getHeader("id")));
                 break;
             case DISCONNECT:
+                db.addLogout(connections.getUserName(ownerId));
                 connections.disconnect(ownerId);
                 shouldClose = true;
                 break;
@@ -104,12 +122,11 @@ public class StompMessagingProtocolImp implements StompMessagingProtocol<StompMe
 
     private void sendError(StompMessage stomp ,String errorMessage)
     {
-        System.out.println(errorMessage);
         StompMessage error = new StompMessage(StompMessage.stompCommand.ERROR, new HashMap<>(), "the message:\n"+ "-----\n"+
         stomp.getMessage()+"-----\n");
         error.addHeader("receipt-id", stomp.getHeader("receipt"));
         error.addHeader("message", errorMessage);
-        System.out.println(connections.send(ownerId, error));
+        connections.send(ownerId, error);
         connections.disconnect(ownerId);
         shouldClose = true;
     }
